@@ -12,7 +12,7 @@ La primer versión fué aportada por el alumno Mauro Soria en el año 2013.
 
 `./restore.sh /path/to/load` esto cargará los archivos anteriormente guardados (`*.host` y `*.router`) del directorio pasado por parámetro.
 
-# Retrocompabilidad 
+# Retrocompatibilidad 
 
 *Esto sólo es válido para quienes usaban el script antes del 12/04/2016*
 
