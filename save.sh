@@ -1,29 +1,70 @@
 #!/bin/bash
 
 # TODO: Tener en cuenta varias instancias de Core ejecutando y diferenciarlas (actualmente soporta solo una instancia).
-# TODO: Buscar mejor forma de diferenciar entre router y pc (tanto cuando se salva como cuando se restaura).
-# TODO: Aceptar como argumento nombre de carpeta destino (analizar en save y restore).
 # NOTA: Tengo el pid de cada topología cuando la enciendo... ;)
-SOCKETS_DIR=$(ps aux | grep -oP "/tmp/pycore.[0-999999999999999].+?(?=/)" | head -n 1)
-OUTPUT_DIR='configs'
-mkdir $OUTPUT_DIR
-find "$SOCKETS_DIR" -maxdepth 1 | while read file; do
-	if [ -S $file ]; then
-		output_file=$(pwd)/$OUTPUT_DIR/$(basename $file).run
-		output=$(/usr/sbin/vcmd -c $file -- vtysh  -E -c 'show run' 2>/dev/null | tail -n+5 )
-		# Como desconozco el servicio o no sé cuál es router o no, pregunto si se genera una salida. Es una solución temporal.
-		if  [ ${#output} -ne 0 ]
+
+# Valido parámetros
+if [ $# -eq 0 ];
+then
+	echo "Debe especificar la ruta de destino." && exit 1
+fi
+
+# Obtengo instancia de CORE (por ahora sólo una)
+SOCKETS_DIR=$(ps aux | grep -oP "/tmp/pycore.[0-9]+" | head -n 1)
+
+# Ruta pasada como argumento
+OUTPUT_DIR=$1
+
+# Chequea si es el directio actual
+# o la ruta es relativa.
+# Sino deja la absoluta pasada por parámetro
+if [ "${#OUTPUT_DIR}" -eq "1" ] && [ "${OUTPUT_DIR:0:1}" = "." ];
+then
+	OUTPUT_DIR="$PWD/"
+elif [ "${OUTPUT_DIR:0:1}" != "/" ]; then
+	# es relativa
+	OUTPUT_DIR="${PWD}/$1"
+fi
+
+# Creo el directorio donde se guardará la configuración
+mkdir -p $OUTPUT_DIR
+
+function _is_router() {
+	`/usr/sbin/vcmd -c $1 -- vtysh -c 'show run' &>/dev/null`
+	return $?
+}
+
+function ok() {
+	echo -e "$1: \e[32mOK\e[0m"
+}
+
+function fail() {
+	echo -e "$1: \e[31mFAIL\e[0m"
+}
+
+# Proceso la instancia de Core
+for file in $SOCKETS_DIR/*; do
+	# Verifico que el archivo sea un Socket
+	if [ -S $file ];
+	then
+		# Obtengo nombre del archivo
+		filename="$(basename $file).run"
+		# Obtengo path absoluto del archivo a guardar
+		output_file="${OUTPUT_DIR}${filename}"
+		# Verifico si es un router o un host
+		if (_is_router $file);
 		then
-			echo -e "$output" > $output_file
+			config=`/usr/sbin/vcmd -c $file -- vtysh -E -c 'show run' 2>/dev/null | tail -n+5`
 		else
-			ip_net_addr=$(/usr/sbin/vcmd -c $file -- bash -E -c 'ip -f inet -o addr')
-			route_n=$(/usr/sbin/vcmd -c $file -- bash -E -c 'route -n')
-			echo -e "$ip_net_addr" | awk '{print "ifconfig "$2" "$4}' | grep eth > $output_file
-			echo -e "$route_n" | awk '{if ($1 == "0.0.0.0") print "route add default gw "$2}' >> $output_file
+			# Configuración de interfaces eth*
+			ip_net_addr=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip -f inet -o addr' | awk '{print "ifconfig "$2" "$4}' | grep eth`
+			# Tabla de Ruteo
+			route_n=`/usr/sbin/vcmd -c $file -- bash -E -c 'route -n' | awk '{if ($1 == "0.0.0.0") print "route add default gw "$2}'`
+			config=$ip_net_addr"\n"$route_n
 		fi
-		echo "Saving $(basename $file)"
+		# Persisto e imprimo el resultado de la operación
+		echo -e "$config" > $output_file \
+			&& ok $output_file \
+			|| fail $output_file
 	fi
 done
-echo "Finish"
-
-exit 0
