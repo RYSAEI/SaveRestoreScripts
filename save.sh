@@ -20,10 +20,11 @@ OUTPUT_DIR=$1
 # Sino deja la absoluta pasada por parámetro
 if [ "${#OUTPUT_DIR}" -eq "1" ] && [ "${OUTPUT_DIR:0:1}" = "." ];
 then
+	# es directorio actual
 	OUTPUT_DIR="$PWD/"
 elif [ "${OUTPUT_DIR:0:1}" != "/" ]; then
-	# es relativa
-	OUTPUT_DIR="${PWD}/$1"
+	# es relativo
+	OUTPUT_DIR="${PWD}/$OUTPUT_DIR/"
 fi
 
 # Creo el directorio donde se guardará la configuración
@@ -48,14 +49,16 @@ for file in $SOCKETS_DIR/*; do
 	if [ -S $file ];
 	then
 		# Obtengo nombre del archivo
-		filename="$(basename $file).run"
+		filename="$(basename $file)"
 		# Obtengo path absoluto del archivo a guardar
 		output_file="${OUTPUT_DIR}${filename}"
 		# Verifico si es un router o un host
 		if (_is_router $file);
 		then
+			output_file="$output_file.router"
 			config=`/usr/sbin/vcmd -c $file -- vtysh -E -c 'show run' 2>/dev/null | tail -n+5`
 		else
+			output_file="$output_file.host"
 			# Configuración de interfaces eth*
 			ip_net_addr=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip -f inet -o addr' | awk '{print "ifconfig "$2" "$4}' | grep eth`
 			# Tabla de Ruteo
