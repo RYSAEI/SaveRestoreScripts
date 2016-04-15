@@ -25,6 +25,8 @@ then
 elif [ "${OUTPUT_DIR:0:1}" != "/" ]; then
 	# es relativo
 	OUTPUT_DIR="${PWD}/$OUTPUT_DIR/"
+else
+	OUTPUT_DIR="$1/"
 fi
 
 # Creo el directorio donde se guardará la configuración
