@@ -22,6 +22,8 @@ then
 elif [ "${CONFIGS_DIR:0:1}" != "/" ]; then
 	# es relativa
 	CONFIGS_DIR="${PWD}/$CONFIGS_DIR/"
+else
+	CONFIGS_DIR=$1
 fi
 
 function ok() {
@@ -36,26 +38,25 @@ for file in $CONFIGS_DIR/*; do
 	filename=$(basename "$file")
 	node_type="${filename##*.}"
 	node=${filename%.*}
-
-	# Comando Base para comunicarme con los sockets
-	cmd="/usr/sbin/vcmd -c $SOCKETS_DIR/$node --"
-
+	# Uso vcmd para comunicarme con el socket (nodo)
+	cmd_base="/usr/sbin/vcmd -c $SOCKETS_DIR/$node -- "
 	case $node_type in
-		"router")
-			# Si es un router usaré vtysh
-			cmd="$cmd vtysh -E -c 'conf t' "
+		"router") # Si es un router usaré vtysh
+			cmd="$cmd_base vtysh -E -c 'conf t'"
+			# Leo las lineas del archivo
+			# y se las envio como comandos concatenados
+			while read line; do
+				cmd+=" -c '$line'"
+			done < "$file"
+			# Ejecuto comando concatenado
+			eval $cmd &>/dev/null
 			;;
-		"host")
-			# Si es un host bash
-			cmd="$cmd bash -E "
+		"host") # Si es un host uso bash
+			cmd="$cmd_base bash -E -c "
+			while read line; do
+				eval "$cmd '$line'" &>/dev/null
+			done < "$file"
 			;;
 	esac
-
-	# Concateno los comandos a ejecutar
-	while read line; do
-		cmd+=" -c '$line'"
-	done < "$file"
-
-	# Ejecuto el comando de un tiro
-	eval $cmd &>/dev/null && ok $file || fail $file
 done
+ok "Loaded"
