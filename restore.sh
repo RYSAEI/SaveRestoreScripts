@@ -44,10 +44,10 @@ for file in $CONFIGS_DIR/*; do
 		"router") # Si es un router usaré vtysh
 			cmd="$cmd_base vtysh -E -c 'conf t'"
 			# Verificamos si BGP está habilitado.
-			bgp_number=$( eval "$cmd do sh run" | grep "router bgp" | awk '{ print $NF }' )
+			bgp_number=$( eval "$cmd -c 'do sh run'" | grep "router bgp" | awk '{ print $NF }' )
 			if [ ${#bgp_number} -ne 0 ]; then
-				eval "$cmd 'no router bgp $bgp_number'"
-			fi	
+				eval "$cmd -c 'no router bgp $bgp_number'" &>/dev/null
+			fi
 			# Leo las lineas del archivo
 			# y se las envio como comandos concatenados
 			while read line; do
