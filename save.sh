@@ -45,6 +45,10 @@ function fail() {
 	echo -e "$1: \e[31mFAIL\e[0m"
 }
 
+function persist() {
+	echo -e "$1" > $2 && ok $2 || fail $2
+}
+
 # Proceso la instancia de Core
 for file in $SOCKETS_DIR/*; do
 	# Verifico que el archivo sea un Socket
@@ -54,22 +58,19 @@ for file in $SOCKETS_DIR/*; do
 		filename="$(basename $file)"
 		# Obtengo path absoluto del archivo a guardar
 		output_file="${OUTPUT_DIR}${filename}"
-		# Verifico si es un router o un host
+		# Verifico si es un router
 		if (_is_router $file);
 		then
-			output_file="$output_file.router"
 			config=`/usr/sbin/vcmd -c $file -- vtysh -E -c 'show run' 2>/dev/null | tail -n+5`
-		else
-			output_file="$output_file.host"
-			# Configuración de interfaces eth*
-			ip_net_addr=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip -f inet -o addr' | awk '{print "ifconfig "$2" "$4}' | grep eth`
-			# Tabla de Ruteo
-			route_n=`/usr/sbin/vcmd -c $file -- bash -E -c 'route -n' | awk '{if ($1 == "0.0.0.0") print "route add default gw "$2}'`
-			config=$ip_net_addr"\n"$route_n
+			# Persisto e imprimo el resultado de la operación
+			persist "$config" "$output_file.vtysh"
 		fi
+		# Configuración de interfaces eth*
+		ip_net_addr=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip -f inet -o addr' | awk '{print "ifconfig "$2" "$4}' | grep eth`
+		# Tabla de Ruteo
+		route_n=`/usr/sbin/vcmd -c $file -- bash -E -c 'route -n' | awk '{if ($1 == "0.0.0.0") print "route add default gw "$2}'`
+		config=$ip_net_addr"\n"$route_n
 		# Persisto e imprimo el resultado de la operación
-		echo -e "$config" > $output_file \
-			&& ok $output_file \
-			|| fail $output_file
+		persist "$config" "$output_file.bash"
 	fi
 done
