@@ -36,12 +36,12 @@ function fail() {
 
 for file in $CONFIGS_DIR/*; do
 	filename=$(basename "$file")
-	node_type="${filename##*.}"
+	cmd_type="${filename##*.}"
 	node=${filename%.*}
 	# Uso vcmd para comunicarme con el socket (nodo)
 	cmd_base="/usr/sbin/vcmd -c $SOCKETS_DIR/$node -- "
-	case $node_type in
-		"router") # Si es un router usaré vtysh
+	case $cmd_type in
+		"vtysh")
 			cmd="$cmd_base vtysh -E -c 'conf t'"
 			# Verificamos si BGP está habilitado.
 			bgp_number=$( eval "$cmd -c 'do sh run'" | grep "router bgp" | awk '{ print $NF }' )
@@ -56,7 +56,7 @@ for file in $CONFIGS_DIR/*; do
 			# Ejecuto comando concatenado
 			eval $cmd &>/dev/null
 			;;
-		"host") # Si es un host uso bash
+		"bash")
 			cmd="$cmd_base bash -E -c "
 			while read line; do
 				eval "$cmd '$line'" &>/dev/null
