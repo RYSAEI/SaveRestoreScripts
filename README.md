@@ -8,7 +8,11 @@ La primer versión fue aportada por el alumno Mauro Soria en el año 2013.
 
 # Cómo usarlo
 
-**NOTA**: Para que estos scripts funcionen correctamente, se debe tener sólo una instancia de CORE ejecutando en la máquina.
+**NOTA**: Se agregó soporte para trabajar con más de una instancia de CORE.
+
+Para esto se debe especificar con cual instancia de CORE se debe trabajar, esto
+se puede hacer mediante el el número que se muestra en la barra superior del
+programa.
 
 `./save.sh /path/to/save` esto guardará los archivos `*.bash` y `*.vtysh` en el directorio pasado por parámetro.
 
