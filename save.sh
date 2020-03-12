@@ -2,7 +2,7 @@
 
 # NOTA: Tengo el pid de cada topología cuando la enciendo... ;)
 
-set -e
+set -u
 
 # Valido parámetros
 if [ $# -eq 0 ]; then
@@ -84,9 +84,11 @@ for file in $CORE/*; do
     fi
     # Configuración de interfaces eth*
     ip_net_addr=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip -f inet -o addr' | awk '{print "ifconfig "$2" "$4}' | grep eth`
+    ip6_net_addr=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip  -f inet6 -o addr' | awk '{print "ip -6 add add  "$4" dev "$2}' | grep eth |grep -v fe80`
     # Tabla de Ruteo
     route_n=`/usr/sbin/vcmd -c $file -- bash -E -c 'route -n' | awk '{if ($1 == "0.0.0.0") print "route add default gw "$2}'`
-    config=$ip_net_addr"\n"$route_n
+    route6_n=`/usr/sbin/vcmd -c $file -- bash -E -c 'ip -6  route ls' | awk '{if ($1 == "default") print "ip -6 route add default via "$3}'`
+    config=$ip6_net_addr"\n"$ip_net_addr"\n"$route_n"\n"$route6_n
     # Persisto e imprimo el resultado de la operación
     persist "$config" "$output_file.bash"
   fi
