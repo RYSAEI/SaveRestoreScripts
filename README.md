@@ -14,6 +14,6 @@ Para esto se debe especificar con cual instancia de CORE se debe trabajar, esto
 se puede hacer mediante el el número que se muestra en la barra superior del
 programa.
 
-`./save.sh /path/to/save` esto guardará los archivos `*.bash` y `*.vtysh` en el directorio pasado por parámetro.
+`save.sh /path/to/save` esto guardará los archivos `*.bash` y `*.vtysh` en el directorio pasado por parámetro.
 
-`./restore.sh /path/to/load` esto cargará los archivos anteriormente guardados (`*.bash` y `*.vtysh`) del directorio pasado por parámetro.
+`restore.sh /path/to/load` esto cargará los archivos anteriormente guardados (`*.bash` y `*.vtysh`) del directorio pasado por parámetro.
